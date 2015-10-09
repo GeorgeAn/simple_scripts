@@ -1,0 +1,33 @@
+#!/bin/bash
+
+url_pool="http://marispolymers.com"
+state=200
+while :
+do
+
+	for url in $url_pool
+	do
+
+
+
+		status=`curl -L -s -o /dev/null -w "%{http_code}" $url`
+
+		if [[ $status -ne 200 ]] && [[ $state -eq 200 ]]
+		then
+			curl -G https://bulksmsn.gr/api/http/send.php -d "username=######" -d "password=########" -d "from=SMSAlert" -d "message=Http+service+for+$url+will+be+temporarily+anavailable+due+to+technical+problems.+Our+admins+are+on+it+already." -d "to=#########"
+                        state=000
+			sleep 10
+		else
+  			if [[ $status -eq 200 ]] && [[ $state -ne 200 ]]
+			then
+				state=200
+				curl -G https://bulksmsn.gr/api/http/send.php -d "username=#########" -d "password=##########" -d "from=SMSAlert" -d "message=Http+service+for+$url+restored." -d "to=##########"
+				sleep 10
+			fi
+ 		fi
+	done
+
+#	sleep 60
+
+done
+
