@@ -1,0 +1,77 @@
+#!/bin/bash
+#GIVE SERVICE NAME TO MONITOR AS ARGUMENT.
+#TESTED ON UBUNTU SERVER 12.04
+
+function SendMail() {
+         SECS=7200;
+	 COUNT=0;
+
+	 if [[ "$1" == "NOT" ]]; then
+                FLAG=1
+                T_H=${3:11:2};T_M=${3:14:2};T_S=${3:17:2}
+         fi
+
+         while [[ 0 -ne $SECS ]]; do
+                sleep 1
+                SECS=$[$SECS-1]
+                COUNT=$((COUNT+1))
+		STATUS_=`/etc/init.d/$2 status| grep -oE 'NOT|not'`;
+		if [[ "$STATUS_" == "NOT" ]]||[[ "$STATUS_" == "not" ]]; then
+                	STATUS_CHECK="NOT"
+	        else
+			STATUS_CHECK="OK"
+		fi
+
+
+                if [[ "$COUNT" -eq "3" ]]; then
+                        if [[ "$STATUS_CHECK" == "NOT" ]]; then
+                                echo -e "From:webmaster@globeone.gr\nTo:ganag16@gmail.com\nMIME-Version: 1.0\nContent-Type: text/plain\nSubject: SERVER PROBLEM\n$2 is down\nIt is a good time to panic!"|sendmail -t -i;
+                          
+				FLAG=2
+                        fi
+                        if [[ "$STATUS_CHECK" == "OK" ]]&&[[ "FLAG" -eq "1" ]]; then
+                                echo -e "From:webmaster@globeone.gr\nTo:ganag16@gmail.com\nMIME-Version: 1.0\nContent-Type: text/plain\nSubject: SERVER RESTARTED\nNothing crucial.\n$2 is back in action!"|sendmail -t -i;
+				
+
+				FLAG=3
+                        fi
+
+                fi
+
+		if [[ "$STATUS_CHECK" == "OK" ]];then
+			if [[ "FLAG" -eq "2" ]]; then
+                        	CURDATE=`date`;
+                        	CURT_H=${CURDATE:11:2};CURT_M=${CURDATE:14:2};CURT_S=${CURDATE:17:2};
+
+				if [[ "$T_S" -gt "$CURT_S" ]]; then
+				        DOWNT_S=$((60-T_S))
+				        CURT_M=$((CURT_M-1))
+				else
+				        DOWNT_S=$((CURT_S-T_S))
+				fi
+
+				if [[ "$T_M" -gt "$CURT_M" ]]; then
+        				DOWNT_M=$((60-T_M))
+        				CURT_H=$((CURT_H-1))
+				else
+       					DOWNT_M=$((CURT_M-T_M))
+				fi
+
+				if [[ "$T_H" -gt "$CURT_H" ]]; then
+        				echo "Wrong arguments!"
+					exit 85
+				else
+        				DOWNT_H=$((CURT_H-T_H))
+				fi
+
+				echo -e "From:webmaster@globeone.gr\nTo:ganag16@gmail.com\nMIME-Version: 1.0\nContent-Type: text/plain\nSubject: SERVER PROBLEM RESTORED\nService $2 was down for $DOWNT_H hours, $DOWNT_M mins and $DOWNT_S secs.\nBut thanks to our sysadmin the problems were solved!"|sendmail -t -i;
+                        	echo -e "From:webmaster@globeone.gr\nTo:ganag16@gmail.com\nMIME-Version: 1.0\nContent-Type: text/plain\nSubject: SERVER PROBLEM RESTORED\nService $2 was down for $DOWNT_H hours, $DOWNT_M mins and $DOWNT_S secs.\nBut thanks to our sysadmin the problems were solved!"|sendmail -t -i;
+
+				break
+			elif [[ "FLAG" -eq "3" ]];then
+				break
+			fi
+                fi
+	done
+
+}
