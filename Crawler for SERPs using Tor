@@ -1,0 +1,102 @@
+#!/usr/bin/python
+
+import time
+import xml.dom.minidom
+import urllib2
+import HTMLParser
+import re
+from htmlentitydefs import name2codepoint
+from htmldom import htmldom
+from TorCtl import TorCtl
+
+
+keywords = ["jump",'awer', 'wwwww' , 'awdd','jumping','trye', "your+partner+mingpao", "jumping", "jump+chine","dawdaw","jump+china","jummp","minpao","ming"]
+domain = "jump.mingpao.com"
+engines = ["gr","com"]
+headers={'User-agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7',
+    'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language':'en-US,en;q=0.8',
+    'Cache-Control':'max-age=0',
+    'Connection':'keep-alive'
+}
+
+
+def renew_connection():
+    conn = TorCtl.connect(controlAddr="127.0.0.1", controlPort=9051, passphrase="########")
+    conn.send_signal("NEWNYM")
+    conn.close()
+
+
+def get_page(engine,keyword,page):
+    time.sleep(4)
+    def _set_urlproxy():
+        proxy_support = urllib2.ProxyHandler({"http" : "127.0.0.1:8118"})
+        opener = urllib2.build_opener(proxy_support)
+        urllib2.install_opener(opener)
+    _set_urlproxy()
+#    url = "http://icanhazip.com/"
+    url = 'https://www.google.%s/search?q=%s&start=%s'%(engine,keyword,page)
+    request=urllib2.Request(url, None, headers)
+    response = urllib2.urlopen(request).read()
+#    print response
+    response = str(response)
+    response = re.sub('<b>|</b>','', response)
+    return response
+
+"""
+def get_page(engine,keyword,page):
+    opener = urllib2.build_opener()
+    opener.addheaders = [('User-agent', 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'),
+    ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'),
+    ('Accept-Language','en-US,en;q=0.8'),
+    ('Cache-Control','max-age=0'),
+    ('Connection','keep-alive'),
+    ('Cookie','PREF=ID=3d5c15daff626d7f:U=cb766bc950559657:FF=0:LD=en:TM=1410361292:LM=1410507951:S=-QX5KP3QMer6Wf-T; SID=DQAAAKoCAABlCniCtuAGrieDKQclsu0-s_sKXO5h5_ks6KReCvLMDzCbIgjxOvSfeegyn82CAG7YQwAUEUhLCSOFVifNE2c2dnafCQhlzSm5sEdX1f4OD8S2Ae7MjLqDFcm_QvR2VOBCj2KjJskLIHARIwTUtXYWcLwrDo8xjJuJ-ncQuT9RnaPkry69aRvXbMK_JGG4G-ckLF0ZyyfO0rByRbfEfyJVqpM76xjomDmF38UKrdHVT4ex7o-bgRkg-p0NkB8l8wv5a44I9j_L5HYFzLaFKpfMQhAz2v8pPI7-RRdTjQQXEWVXvlZX4GOqpg51fQMnWxEI45xx4ePV0KfWs0gP3vkDxXXPYJM1RaB01JwCX556h00iafyyOSkSWRJviui-Nf2pJw3hqVtDZYdYsXsl54D7pq1-pdY1rqmTzexpjXZrjowC3WMjKwNdAxD7q0Xp_a2swewxTCPA96bqZKr11zdYBql2lHqfLazVGj9yFZYCfcUEE0CUDoCqgzEYLzSD52_yKPUvwXizufjYWXc09myFt9t2RBOfPO_4mp5JeJGO0irb1zSP7oOSaCbqgMR-BDngvMmYxzONY5qX9eruDUGiv8jFT2ui5vWFm93KKTujw9uKdbrbW6__GSQmFRSH96IdDz3rzFnga4TiLSBXw6ZJbR8VQaHKdcEUoMh4PN-rll4ubznr8ELmbR1J-wJBH8F0qJVIz-6_Mp4P7_ZUxj9yYp8O04BmljLuLos7Bb1SYFdLjMNKmGG2p5TsdSkTdIDAp8W-zglj6LeVOlblUKjHJjvVj-tNGnnPEBsHLGrrVq5cnVzkjerop0R_tpBiJHag58VDPQDazuQZ66AQkCe1X2fJGoCJ5AKDJdosS940eF2EA0iNGLf9oEq2sj3MqYCgpPfJMjZdqEqtHZlT2nFz; HSID=ABN9_uQKFdLcVRup3; SSID=AmAAn07-EYikycVw5; APISID=M0O4EWsIUIxZeKly/AHaIQzgUusW13kpAA; SAPISID=rRt5efysS8FRjPaf/AaGE6TK3OiXC9xe1Q; NID=67=dRUf57cSeOenwDpq0m5a-cdZMt7dp1ETZIKbDx3-xt2Ve_J4JJK0sIMuUUvpMKMcdLvy5hcv8rj7c4LxyS06DpPNl-8QCR8Z-ZiE7PnRX8-JQnYY9rkRGqv63cqAaz96Tf9VD4F_DrC0zLdJ0LMAR-TIqAEfHgcwl_foVgdLrmffWfiIqd9BSqLH5aBCgcSE5CXqsKc68NiJdXKgmXbj7EYHZ0ey4E4xTuIlZnOtLkgd7g03tupPHhjogFg_-txlRvPIQAzxNlK8OOGp3OlxSXSADA1L41773qz669rnfNI0XPUaWtXalxzGXYlsU5U2F1Ymzji3HntG_PjuocI4-Y9IvtJaCL8RZNvEiuIcDJF33Q')]
+
+    response = opener.open('https://www.google.%s/search?q=%s&start=%s'%(engine,keyword,page)).read()
+    response = str(response)
+    response = re.sub('<b>|</b>','', response)
+    return response
+"""
+
+def get_serp(engine,keyword,domain):
+    list = []
+    serp = 1
+    #renew_connection()
+    for page in range(0,5):
+        response = get_page(engine,keyword,page*10)
+
+        dom = htmldom.HtmlDom().createDom(response)
+        for i in range(0,10):
+            if (dom.find( "cite" )[i].text()):
+                list.append(dom.find( "cite" )[i].text())
+                if str(dom.find( "cite" )[i].text()).startswith(domain):
+                    return serp
+                else:
+                    serp += 1
+            else:
+                return "Could not determine serp"    
+    return "Not in 50"
+
+
+def get_keywords_serps(engine,keywords,domain):
+    serps = []
+    count = 0
+    for keyword in keywords:
+        count += 1
+        serp = get_serp(engine,keyword,domain)
+        serps.append([keyword, serp])
+        if count == 10:
+            renew_connection()
+            count = 0
+    return serps
+
+
+engines_serps = []
+for engine in engines:
+    serps = get_keywords_serps(engine,keywords,domain)
+    engines_serps.append(serps)
+
+print engines_serps
+
+
